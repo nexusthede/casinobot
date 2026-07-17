@@ -3,32 +3,22 @@ const path = require("path");
 
 const Economy = require("../models/Economy");
 
-const BACKUP_FOLDER = path.join(__dirname, "..", "backups");
-const MAX_BACKUPS = 24;
+const BACKUP_FOLDER = path.join(__dirname, "backups");
 
 if (!fs.existsSync(BACKUP_FOLDER)) {
     fs.mkdirSync(BACKUP_FOLDER, { recursive: true });
 }
 
-function timestamp() {
-    const now = new Date();
 
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
+let backupSlot = 1;
 
-    const hour = String(now.getHours()).padStart(2, "0");
-    const minute = String(now.getMinutes()).padStart(2, "0");
-    const second = String(now.getSeconds()).padStart(2, "0");
 
-    return `${year}-${month}-${day}_${hour}-${minute}-${second}`;
-}
-
-async function createBackup() {
+async function createBackup(slot) {
 
     try {
 
         const users = await Economy.find({}).lean();
+
 
         const backup = {
             version: 1,
@@ -37,65 +27,72 @@ async function createBackup() {
             data: users
         };
 
+
         const file = path.join(
             BACKUP_FOLDER,
-            `backup-${timestamp()}.json`
+            `backup-${slot}.json`
         );
+
 
         fs.writeFileSync(
             file,
             JSON.stringify(backup, null, 2)
         );
 
+
         console.log(
-            `[Backup] Saved ${users.length} profiles.`
+            `[Backup] Updated backup-${slot}.json (${users.length} profiles).`
         );
 
-        rotateBackups();
 
     } catch (err) {
 
-        console.error("[Backup] Failed to create backup.");
+        console.error(
+            "[Backup] Failed to create backup."
+        );
+
         console.error(err);
 
     }
 
 }
 
-function rotateBackups() {
-
-    const files = fs.readdirSync(BACKUP_FOLDER)
-        .filter(file => file.endsWith(".json"))
-        .sort();
-
-    while (files.length > MAX_BACKUPS) {
-
-        const oldest = files.shift();
-
-        fs.unlinkSync(
-            path.join(BACKUP_FOLDER, oldest)
-        );
-
-        console.log(
-            `[Backup] Deleted old backup: ${oldest}`
-        );
-
-    }
-
-}
 
 function startBackupScheduler() {
 
-    console.log("[Backup] Scheduler started.");
+    console.log(
+        "[Backup] Scheduler started."
+    );
+
+
+    // Create first backup immediately
+
+    createBackup(backupSlot);
+
+
 
     // Backup every hour
+
     setInterval(() => {
 
-        createBackup();
+
+        backupSlot++;
+
+
+        if (backupSlot > 3) {
+
+            backupSlot = 1;
+
+        }
+
+
+        createBackup(backupSlot);
+
 
     }, 60 * 60 * 1000);
 
 }
+
 
 module.exports = {
     createBackup,
