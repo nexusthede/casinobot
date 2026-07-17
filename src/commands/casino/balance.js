@@ -38,10 +38,8 @@ module.exports = {
                 [
                     `**Wallet**`,
                     `\`$${formatMoney(wallet)}\``,
-                    ``,
                     `**Bank**`,
                     `\`$${formatMoney(bank)}\``,
-                    ``,
                     `**Net Worth**`,
                     `\`$${formatMoney(total)}\``
                 ].join("\n")
