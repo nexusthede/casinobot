@@ -3,76 +3,158 @@ const path = require("path");
 
 const Economy = require("../models/Economy");
 
-const BACKUP_FOLDER = path.join(__dirname, "..", "backups");
+const BACKUP_FOLDER = path.join(__dirname, "backups");
+
 
 async function restoreLatestBackup() {
 
     try {
 
         if (!fs.existsSync(BACKUP_FOLDER)) {
-            console.log("[Restore] Backup folder does not exist.");
+
+            console.log(
+                "[Restore] Backup folder does not exist."
+            );
+
             return false;
         }
+
 
         const backups = fs.readdirSync(BACKUP_FOLDER)
-            .filter(file => file.endsWith(".json"))
-            .sort();
+            .filter(file =>
+                file === "backup-1.json" ||
+                file === "backup-2.json" ||
+                file === "backup-3.json"
+            );
+
 
         if (!backups.length) {
-            console.log("[Restore] No backups found.");
+
+            console.log(
+                "[Restore] No backups found."
+            );
+
             return false;
         }
 
-        const latest = backups[backups.length - 1];
 
-        const backupPath = path.join(
-            BACKUP_FOLDER,
-            latest
-        );
 
-        const backup = JSON.parse(
-            fs.readFileSync(backupPath, "utf8")
-        );
+        let latestBackup = null;
+        let latestFile = null;
 
-        if (!backup.data || !Array.isArray(backup.data)) {
-            console.log("[Restore] Invalid backup.");
+
+
+        for (const file of backups) {
+
+            const filePath = path.join(
+                BACKUP_FOLDER,
+                file
+            );
+
+
+            try {
+
+                const data = JSON.parse(
+                    fs.readFileSync(
+                        filePath,
+                        "utf8"
+                    )
+                );
+
+
+                if (
+                    !data.createdAt ||
+                    !data.data
+                ) {
+                    continue;
+                }
+
+
+                if (
+                    !latestBackup ||
+                    new Date(data.createdAt) >
+                    new Date(latestBackup.createdAt)
+                ) {
+
+                    latestBackup = data;
+                    latestFile = file;
+
+                }
+
+
+            } catch {}
+
+        }
+
+
+
+        if (!latestBackup) {
+
+            console.log(
+                "[Restore] No valid backups found."
+            );
+
             return false;
         }
+
+
 
         let restored = 0;
 
-        for (const profile of backup.data) {
+
+
+        for (const profile of latestBackup.data) {
+
 
             await Economy.findOneAndUpdate(
+
                 {
                     guildId: profile.guildId,
                     userId: profile.userId
                 },
+
                 profile,
+
                 {
                     upsert: true,
                     new: true,
                     overwrite: true
                 }
+
             );
 
+
             restored++;
+
         }
 
+
+
         console.log(
-            `[Restore] Successfully restored ${restored} economy profiles from ${latest}.`
+            `[Restore] Successfully restored ${restored} economy profiles from ${latestFile}.`
         );
+
 
         return true;
 
+
+
     } catch (err) {
 
-        console.error("[Restore] Failed to restore backup.");
+
+        console.error(
+            "[Restore] Failed to restore backup."
+        );
+
         console.error(err);
 
+
         return false;
+
     }
+
 }
+
 
 module.exports = {
     restoreLatestBackup
