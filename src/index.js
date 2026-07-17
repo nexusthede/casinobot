@@ -6,7 +6,8 @@ const {
     Client,
     GatewayIntentBits,
     Partials,
-    Collection
+    Collection,
+    ActivityType
 } = require("discord.js");
 
 const {
@@ -112,6 +113,51 @@ client.once(
         console.log(
             `${client.user.tag} is online`
         );
+
+
+        // =========================
+        // STATUS
+        // =========================
+
+        const statuses = [
+            "🎰 come try your luck with me",
+            `🔗 discord.gg/${client.guilds.cache.first().name}`
+        ];
+
+
+        let statusIndex = 0;
+
+
+        client.user.setActivity(
+            statuses[statusIndex],
+            {
+                type: ActivityType.Playing
+            }
+        );
+
+
+        setInterval(() => {
+
+            statusIndex++;
+
+
+            if (statusIndex >= statuses.length) {
+
+                statusIndex = 0;
+
+            }
+
+
+            client.user.setActivity(
+                statuses[statusIndex],
+                {
+                    type: ActivityType.Playing
+                }
+            );
+
+
+        }, 15000);
+
 
 
         // Remove unauthorized servers
