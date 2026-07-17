@@ -32,7 +32,7 @@ module.exports = {
 
 
         const amount =
-            Number(args[1]);
+            Number(args[1]?.replace(/,/g, ""));
 
 
 
