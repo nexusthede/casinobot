@@ -1,11 +1,15 @@
-const { EmbedBuilder } = require("discord.js");
+const {
+    EmbedBuilder
+} = require("discord.js");
+
 const config = require("../../config");
 
 const {
-    getProfile,
-    saveProfile,
-    formatMoney
-} = require("../../utils/economy");
+    validateBet,
+    placeBet,
+    winGame,
+    loseGame
+} = require("../../utils/casino");
 
 
 module.exports = {
@@ -17,49 +21,87 @@ module.exports = {
     ],
 
 
-    async execute(client, message, args) {
+    async execute(
+        client,
+        message,
+        args
+    ) {
 
 
-        const amount = Number(args[0]);
-        const guess = Number(args[1]);
+        const guess =
+            Number(args[0]);
 
 
-
-        if (!amount || amount <= 0) {
-
-            return message.reply(
-                "Usage: ,dice <amount> <number 1-6>"
-            );
-
-        }
+        const bet =
+            Number(args[1]);
 
 
 
         if (
             !guess ||
             guess < 1 ||
-            guess > 6
+            guess > 6 ||
+            !bet
         ) {
 
+
+            const embed =
+                new EmbedBuilder()
+
+                .setColor(config.embedColor)
+
+                .setTitle("Dice")
+
+                .setDescription(
+`Roll a dice and win if your guess is correct.
+
+**Syntax**
+\`${config.prefix}dice <number 1-6> <amount>\`
+
+**Example**
+\`${config.prefix}roll 6 500\``
+                );
+
+
+            return message.reply({
+                embeds: [
+                    embed
+                ]
+            });
+
+        }
+
+
+
+        const check =
+            validateBet(bet);
+
+
+
+        if (!check.valid) {
+
             return message.reply(
-                "Pick a number between 1 and 6."
+                check.message
             );
 
         }
 
 
 
-        const profile = await getProfile(
-            message.guild.id,
-            message.author.id
-        );
+        const placed =
+            await placeBet(
+                message.guild.id,
+                message.author.id,
+                bet,
+                "dice"
+            );
 
 
 
-        if (profile.wallet < amount) {
+        if (!placed.success) {
 
             return message.reply(
-                "You don't have enough money."
+                placed.message
             );
 
         }
@@ -71,79 +113,97 @@ module.exports = {
 
 
 
-        let winnings = 0;
+        const won =
+            roll === guess;
 
 
 
-        if (roll === guess) {
+        if (won) {
 
-            winnings = amount * 5;
 
-            profile.wallet += winnings;
+            const payout =
+                bet * 5;
+
+
+
+            await winGame(
+                message.guild.id,
+                message.author.id,
+                payout
+            );
+
+
+
+            const embed =
+                new EmbedBuilder()
+
+                .setColor("Green")
+
+                .setTitle("Dice Result")
+
+                .setDescription(
+`The dice rolled **${roll}**.
+
+You guessed **${guess}**.
+
+You won **$${payout.toLocaleString()}**.`
+                )
+
+                .setFooter({
+                    text:
+                    `Played by ${message.author.username}`
+                });
+
+
+
+            return message.reply({
+                embeds: [
+                    embed
+                ]
+            });
+
 
         } else {
 
-            profile.wallet -= amount;
+
+            await loseGame(
+                message.guild.id,
+                message.author.id,
+                bet
+            );
+
+
+
+            const embed =
+                new EmbedBuilder()
+
+                .setColor("Red")
+
+                .setTitle("Dice Result")
+
+                .setDescription(
+`The dice rolled **${roll}**.
+
+You guessed **${guess}**.
+
+You lost **$${bet.toLocaleString()}**.`
+                )
+
+                .setFooter({
+                    text:
+                    `Played by ${message.author.username}`
+                });
+
+
+
+            return message.reply({
+                embeds: [
+                    embed
+                ]
+            });
+
 
         }
-
-
-
-        await saveProfile(profile);
-
-
-
-        const embed = new EmbedBuilder()
-
-            .setColor(config.embedColor)
-
-            .setTitle("🎲 Dice")
-
-            .setDescription(
-
-                [
-
-                    `You rolled: **${roll}**`,
-
-                    `Your guess: **${guess}**`,
-
-                    "",
-
-                    roll === guess
-
-                        ? `You won **$${formatMoney(winnings)}**`
-
-                        : `You lost **$${formatMoney(amount)}**`,
-
-                    "",
-
-                    `Wallet: **$${formatMoney(profile.wallet)}**`
-
-                ].join("\n")
-
-            )
-
-            .setFooter({
-
-                text: `Played by ${message.author.username}`,
-
-                iconURL: message.author.displayAvatarURL({
-                    dynamic: true
-                })
-
-            })
-
-            .setTimestamp();
-
-
-
-        return message.reply({
-
-            embeds: [
-                embed
-            ]
-
-        });
 
 
     }
