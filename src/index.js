@@ -9,11 +9,20 @@ const {
     Client,
     GatewayIntentBits,
     Collection,
-    Partials,
-    ActivityType
+    Partials
 } = require("discord.js");
 
+const { DefaultWebSocketManagerOptions } = require("@discordjs/ws");
+
+DefaultWebSocketManagerOptions.identifyProperties.browser = "Discord Android";
+
 const config = require("../config");
+
+const ALLOWED_GUILD_ID = "1406596836793516102";
+
+// =========================
+// EXPRESS
+// =========================
 
 const app = express();
 
@@ -24,8 +33,12 @@ app.get("/", (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-    console.log(`Web server running on ${PORT}`);
+    console.log(`Web server running on port ${PORT}`);
 });
+
+// =========================
+// CLIENT
+// =========================
 
 const client = new Client({
     intents: [
@@ -41,23 +54,27 @@ const client = new Client({
 
 client.commands = new Collection();
 
-const commandFolders = fs.readdirSync(
-    path.join(__dirname, "commands")
-);
+// =========================
+// LOAD COMMANDS
+// =========================
 
-for (const folder of commandFolders) {
+const commandsPath = path.join(__dirname, "commands");
+
+for (const folder of fs.readdirSync(commandsPath)) {
+
+    const folderPath = path.join(commandsPath, folder);
 
     const commandFiles = fs
-        .readdirSync(path.join(__dirname, "commands", folder))
+        .readdirSync(folderPath)
         .filter(file => file.endsWith(".js"));
 
     for (const file of commandFiles) {
 
-        const command = require(path.join(__dirname, "commands", folder, file));
+        const command = require(path.join(folderPath, file));
 
         client.commands.set(command.name.toLowerCase(), command);
 
-        if (command.aliases) {
+        if (Array.isArray(command.aliases)) {
             for (const alias of command.aliases) {
                 client.commands.set(alias.toLowerCase(), command);
             }
@@ -65,33 +82,48 @@ for (const folder of commandFolders) {
     }
 }
 
+// =========================
+// READY
+// =========================
+
 client.once("ready", async () => {
 
     console.log(`${client.user.tag} is online.`);
 
-    client.user.setPresence({
-        status: "online",
-        activities: [
-            {
-                name: `${config.prefix}help`,
-                type: ActivityType.Listening
-            }
-        ]
-    });
+    for (const guild of client.guilds.cache.values()) {
 
-    try {
-        await mongoose.connect(config.mongoURI);
-        console.log("Connected to MongoDB.");
-    } catch (err) {
-        console.error(err);
+        if (guild.id !== ALLOWED_GUILD_ID) {
+
+            console.log(`Leaving ${guild.name} (${guild.id})`);
+
+            await guild.leave().catch(() => {});
+        }
     }
 
 });
+
+// =========================
+// AUTO LEAVE NEW GUILDS
+// =========================
+
+client.on("guildCreate", async guild => {
+
+    if (guild.id !== ALLOWED_GUILD_ID) {
+        await guild.leave().catch(() => {});
+    }
+
+});
+
+// =========================
+// MESSAGE HANDLER
+// =========================
 
 client.on("messageCreate", async message => {
 
     if (message.author.bot) return;
     if (!message.guild) return;
+
+    if (message.guild.id !== ALLOWED_GUILD_ID) return;
 
     if (!message.content.startsWith(config.prefix)) return;
 
@@ -101,6 +133,8 @@ client.on("messageCreate", async message => {
         .split(/\s+/);
 
     const commandName = args.shift()?.toLowerCase();
+
+    if (!commandName) return;
 
     const command = client.commands.get(commandName);
 
@@ -120,4 +154,24 @@ client.on("messageCreate", async message => {
 
 });
 
-client.login(config.token);
+// =========================
+// START
+// =========================
+
+(async () => {
+
+    try {
+
+        await mongoose.connect(config.mongoURI);
+
+        console.log("Connected to MongoDB.");
+
+        await client.login(config.token);
+
+    } catch (err) {
+
+        console.error(err);
+
+    }
+
+})();
