@@ -17,7 +17,7 @@ DefaultWebSocketManagerOptions.identifyProperties.browser =
     "Discord Android";
 
 
-const config = require("../config");
+const config = require("./config");
 
 const database = require("./recovery/database");
 
