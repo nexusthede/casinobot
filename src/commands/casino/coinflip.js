@@ -55,7 +55,6 @@ module.exports = {
 
 **Syntax**
 \`${config.prefix}coinflip <heads/tails> <amount>\`
-
 **Example**
 \`${config.prefix}cf heads 500\``
                 );
