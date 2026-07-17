@@ -1,7 +1,6 @@
 require("dotenv").config();
 
 const express = require("express");
-const path = require("path");
 
 const {
     Client,
@@ -10,15 +9,27 @@ const {
     Collection
 } = require("discord.js");
 
-const { DefaultWebSocketManagerOptions } = require("@discordjs/ws");
+const {
+    DefaultWebSocketManagerOptions
+} = require("@discordjs/ws");
 
-DefaultWebSocketManagerOptions.identifyProperties.browser = "Discord Android";
+DefaultWebSocketManagerOptions.identifyProperties.browser =
+    "Discord Android";
+
 
 const config = require("../config");
 
 const database = require("./recovery/database");
-const { startAutoSave } = require("./recovery/autosave");
-const { restoreLatestBackup } = require("./recovery/restore");
+
+const {
+    restoreLatestBackup
+} = require("./recovery/restore");
+
+const {
+    startAutoSave,
+    gracefulShutdown
+} = require("./recovery/autosave");
+
 
 const loadCommands = require("./loaders/commandLoader");
 
@@ -26,7 +37,9 @@ const setupMessages = require("./handlers/messages");
 const setupGuilds = require("./handlers/guilds");
 const setupErrors = require("./handlers/errors");
 
-const ALLOWED_GUILD_ID = "1406596836793516102";
+
+const ALLOWED_GUILD_ID =
+    "1406596836793516102";
 
 
 // =========================
@@ -35,52 +48,127 @@ const ALLOWED_GUILD_ID = "1406596836793516102";
 
 const app = express();
 
+
 app.get("/", (req, res) => {
     res.send("Casino Bot Online");
 });
 
-app.listen(
-    process.env.PORT || 3000,
-    () => console.log("Web server online")
-);
+
+const PORT =
+    process.env.PORT || 3000;
+
+
+app.listen(PORT, () => {
+
+    console.log(
+        `Web server running on ${PORT}`
+    );
+
+});
+
 
 
 // =========================
-// CLIENT
+// DISCORD CLIENT
 // =========================
 
 const client = new Client({
 
     intents: [
+
         GatewayIntentBits.Guilds,
+
         GatewayIntentBits.GuildMembers,
+
         GatewayIntentBits.GuildMessages,
+
         GatewayIntentBits.MessageContent
+
     ],
 
     partials: [
+
         Partials.Channel
+
     ]
 
 });
 
 
-client.commands = new Collection();
+client.commands =
+    new Collection();
+
 
 
 // =========================
-// STARTUP
+// READY
+// =========================
+
+client.once(
+    "ready",
+    async () => {
+
+
+        console.log(
+            `${client.user.tag} is online`
+        );
+
+
+        // Remove unauthorized servers
+
+        for (
+            const guild of client.guilds.cache.values()
+        ) {
+
+
+            if (
+                guild.id !== ALLOWED_GUILD_ID
+            ) {
+
+                console.log(
+                    `Leaving unauthorized server: ${guild.name}`
+                );
+
+
+                await guild.leave()
+                    .catch(() => {});
+
+            }
+
+        }
+
+
+    }
+);
+
+
+
+// =========================
+// START BOT
 // =========================
 
 (async () => {
 
     try {
 
-        await database.connect(config.mongoURI);
+
+        await database.connect(
+            config.mongoURI
+        );
+
+
+        console.log(
+            "Database connected"
+        );
+
+
 
         await restoreLatestBackup();
 
+
+
         loadCommands(client);
+
 
 
         setupMessages(
@@ -99,40 +187,49 @@ client.commands = new Collection();
         setupErrors();
 
 
+
         startAutoSave();
 
 
-        await client.login(config.token);
+
+        await client.login(
+            config.token
+        );
+
 
 
     } catch (err) {
 
+
+        console.error(
+            "Startup failed:"
+        );
+
+
         console.error(err);
 
+
+        process.exit(1);
+
+
     }
+
 
 })();
 
 
+
 // =========================
-// READY
+// GRACEFUL SHUTDOWN
 // =========================
 
-client.once("ready", async () => {
+process.on(
+    "SIGINT",
+    () => gracefulShutdown(client)
+);
 
-    console.log(
-        `${client.user.tag} online`
-    );
 
-
-    for (const guild of client.guilds.cache.values()) {
-
-        if (guild.id !== ALLOWED_GUILD_ID) {
-
-            await guild.leave();
-
-        }
-
-    }
-
-});
+process.on(
+    "SIGTERM",
+    () => gracefulShutdown(client)
+);
