@@ -57,7 +57,6 @@ module.exports = {
 
 **Syntax**
 \`${config.prefix}dice <number 1-6> <amount>\`
-
 **Example**
 \`${config.prefix}roll 6 500\``
                 );
@@ -147,12 +146,7 @@ module.exports = {
 You guessed **${guess}**.
 
 You won **$${payout.toLocaleString()}**.`
-                )
-
-                .setFooter({
-                    text:
-                    `Played by ${message.author.username}`
-                });
+                );
 
 
 
@@ -187,12 +181,7 @@ You won **$${payout.toLocaleString()}**.`
 You guessed **${guess}**.
 
 You lost **$${bet.toLocaleString()}**.`
-                )
-
-                .setFooter({
-                    text:
-                    `Played by ${message.author.username}`
-                });
+                );
 
 
 
