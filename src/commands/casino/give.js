@@ -56,7 +56,6 @@ module.exports = {
 
 **Syntax**
 \`${config.prefix}give <user> <amount>\`
-
 **Example**
 \`${config.prefix}give @user 500\``
                 );
@@ -159,7 +158,7 @@ module.exports = {
             )
 
             .setFooter({
-                text: `Payment sent by ${message.author.username}`,
+                text: `Transaction completed`,
                 iconURL: message.author.displayAvatarURL({
                     dynamic: true
                 })
