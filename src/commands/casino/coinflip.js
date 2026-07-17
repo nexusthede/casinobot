@@ -144,12 +144,7 @@ module.exports = {
 `The coin landed on **${result}**.
 
 You won **$${payout.toLocaleString()}**.`
-                )
-
-                .setFooter({
-                    text:
-                    `Played by ${message.author.username}`
-                });
+                );
 
 
 
@@ -182,12 +177,7 @@ You won **$${payout.toLocaleString()}**.`
 `The coin landed on **${result}**.
 
 You lost **$${bet.toLocaleString()}**.`
-                )
-
-                .setFooter({
-                    text:
-                    `Played by ${message.author.username}`
-                });
+                );
 
 
 
