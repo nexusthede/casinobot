@@ -1,11 +1,15 @@
-const { EmbedBuilder } = require("discord.js");
+const {
+    EmbedBuilder
+} = require("discord.js");
+
 const config = require("../../config");
 
 const {
-    getProfile,
-    saveProfile,
-    formatMoney
-} = require("../../utils/economy");
+    validateBet,
+    placeBet,
+    winGame,
+    loseGame
+} = require("../../utils/casino");
 
 
 module.exports = {
@@ -17,31 +21,78 @@ module.exports = {
     ],
 
 
-    async execute(client, message, args) {
+    async execute(
+        client,
+        message,
+        args
+    ) {
 
 
-        const amount = Number(args[0]);
+        const bet =
+            Number(args[0]);
 
 
-        if (!amount || amount <= 0) {
+
+        if (!bet) {
+
+
+            const embed =
+                new EmbedBuilder()
+
+                .setColor(config.embedColor)
+
+                .setTitle("Slots")
+
+                .setDescription(
+`Spin the slots and try your luck.
+
+**Syntax**
+\`${config.prefix}slots <amount>\`
+
+**Example**
+\`${config.prefix}slot 500\``
+                );
+
+
+            return message.reply({
+                embeds: [
+                    embed
+                ]
+            });
+
+        }
+
+
+
+        const check =
+            validateBet(bet);
+
+
+
+        if (!check.valid) {
 
             return message.reply(
-                "Please enter a valid amount."
+                check.message
             );
 
         }
 
 
-        const profile = await getProfile(
-            message.guild.id,
-            message.author.id
-        );
+
+        const placed =
+            await placeBet(
+                message.guild.id,
+                message.author.id,
+                bet,
+                "slots"
+            );
 
 
-        if (profile.wallet < amount) {
+
+        if (!placed.success) {
 
             return message.reply(
-                "You don't have enough money."
+                placed.message
             );
 
         }
@@ -60,9 +111,25 @@ module.exports = {
 
 
         const spin = [
-            symbols[Math.floor(Math.random() * symbols.length)],
-            symbols[Math.floor(Math.random() * symbols.length)],
-            symbols[Math.floor(Math.random() * symbols.length)]
+
+            symbols[
+                Math.floor(
+                    Math.random() * symbols.length
+                )
+            ],
+
+            symbols[
+                Math.floor(
+                    Math.random() * symbols.length
+                )
+            ],
+
+            symbols[
+                Math.floor(
+                    Math.random() * symbols.length
+                )
+            ]
+
         ];
 
 
@@ -75,6 +142,7 @@ module.exports = {
             spin[0] === spin[1] &&
             spin[1] === spin[2]
         ) {
+
 
             if (spin[0] === "💎") {
 
@@ -90,12 +158,13 @@ module.exports = {
 
             }
 
-        } 
-        
-        else if (
+
+        } else if (
+
             spin[0] === spin[1] ||
             spin[1] === spin[2] ||
             spin[0] === spin[2]
+
         ) {
 
             multiplier = 2;
@@ -104,70 +173,93 @@ module.exports = {
 
 
 
-        let winnings = 0;
+        const won =
+            multiplier > 0;
 
 
-        if (multiplier > 0) {
 
-            winnings = amount * multiplier;
+        if (won) {
 
-            profile.wallet += winnings;
 
-        } 
-        
-        else {
+            const payout =
+                bet * multiplier;
 
-            profile.wallet -= amount;
+
+
+            await winGame(
+                message.guild.id,
+                message.author.id,
+                payout
+            );
+
+
+
+            const embed =
+                new EmbedBuilder()
+
+                .setColor("Green")
+
+                .setTitle("Slots Result")
+
+                .setDescription(
+`**${spin.join(" | ")}**
+
+You won **$${payout.toLocaleString()}**.`
+                )
+
+                .setFooter({
+                    text:
+                    `Played by ${message.author.username}`
+                });
+
+
+
+            return message.reply({
+                embeds: [
+                    embed
+                ]
+            });
+
+
+        } else {
+
+
+            await loseGame(
+                message.guild.id,
+                message.author.id,
+                bet
+            );
+
+
+
+            const embed =
+                new EmbedBuilder()
+
+                .setColor("Red")
+
+                .setTitle("Slots Result")
+
+                .setDescription(
+`**${spin.join(" | ")}**
+
+You lost **$${bet.toLocaleString()}**.`
+                )
+
+                .setFooter({
+                    text:
+                    `Played by ${message.author.username}`
+                });
+
+
+
+            return message.reply({
+                embeds: [
+                    embed
+                ]
+            });
+
 
         }
-
-
-
-        await saveProfile(profile);
-
-
-
-        const embed = new EmbedBuilder()
-
-            .setColor(config.embedColor)
-
-            .setTitle("🎰 Slots")
-
-            .setDescription(
-
-                [
-                    `**${spin.join(" | ")}**`,
-                    "",
-                    multiplier > 0
-                        ? `You won **$${formatMoney(winnings)}**`
-                        : `You lost **$${formatMoney(amount)}**`,
-                    "",
-                    `Wallet: **$${formatMoney(profile.wallet)}**`
-                ].join("\n")
-
-            )
-
-            .setFooter({
-
-                text: `Played by ${message.author.username}`,
-
-                iconURL: message.author.displayAvatarURL({
-                    dynamic: true
-                })
-
-            })
-
-            .setTimestamp();
-
-
-
-        return message.reply({
-
-            embeds: [
-                embed
-            ]
-
-        });
 
 
     }
