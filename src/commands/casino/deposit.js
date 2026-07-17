@@ -36,8 +36,20 @@ module.exports = {
 
         let amount =
             args[0]
-                ? Number(args[0])
+                ? Number(args[0].replace(/,/g, ""))
                 : profile.wallet;
+
+
+
+        if (
+            profile.wallet <= 0
+        ) {
+
+            return message.reply(
+                "You don't have any money to deposit."
+            );
+
+        }
 
 
 
@@ -48,7 +60,7 @@ module.exports = {
         ) {
 
             return message.reply(
-                "You don't have any money to deposit."
+                "Please enter a valid amount."
             );
 
         }
@@ -91,18 +103,9 @@ module.exports = {
 
 **Wallet**
 \`$${formatMoney(profile.wallet)}\`
-
 **Bank**
 \`$${formatMoney(profile.bank)}\``
             )
-
-            .setFooter({
-                text:
-                `Deposited by ${message.author.username}`,
-                iconURL: message.author.displayAvatarURL({
-                    dynamic: true
-                })
-            })
 
             .setTimestamp();
 
