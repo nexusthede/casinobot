@@ -29,7 +29,7 @@ module.exports = {
 
 
         const bet =
-            Number(args[0]);
+            Number(args[0]?.replace(/,/g, ""));
 
 
 
@@ -48,7 +48,6 @@ module.exports = {
 
 **Syntax**
 \`${config.prefix}slots <amount>\`
-
 **Example**
 \`${config.prefix}slot 500\``
                 );
@@ -205,12 +204,7 @@ module.exports = {
 `**${spin.join(" | ")}**
 
 You won **$${payout.toLocaleString()}**.`
-                )
-
-                .setFooter({
-                    text:
-                    `Played by ${message.author.username}`
-                });
+                );
 
 
 
@@ -243,12 +237,7 @@ You won **$${payout.toLocaleString()}**.`
 `**${spin.join(" | ")}**
 
 You lost **$${bet.toLocaleString()}**.`
-                )
-
-                .setFooter({
-                    text:
-                    `Played by ${message.author.username}`
-                });
+                );
 
 
 
