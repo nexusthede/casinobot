@@ -33,7 +33,7 @@ module.exports = {
 
 
         const bet =
-            Number(args[1]);
+            Number(args[1]?.replace(/,/g, ""));
 
 
 
