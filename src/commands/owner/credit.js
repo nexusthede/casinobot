@@ -71,7 +71,6 @@ module.exports = {
 
 **Syntax**
 \`${config.prefix}credit <user> <amount>\`
-
 **Example**
 \`${config.prefix}credit @user 5000\``
                 );
