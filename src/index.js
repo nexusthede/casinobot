@@ -120,7 +120,7 @@ client.once(
         // =========================
 
         const statuses = [
-            "🎰 come try your luck with me",
+            "mmmm come try your luck with me",
             `🔗 discord.gg/${client.guilds.cache.first().name}`
         ];
 
