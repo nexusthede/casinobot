@@ -151,10 +151,8 @@ module.exports = {
                 [
                     `**Sent**`,
                     `\`$${formatMoney(amount)}\``,
-                    ``,
                     `**To**`,
                     `${user}`,
-                    ``,
                     `**Wallet**`,
                     `\`$${formatMoney(sender.wallet)}\``
                 ].join("\n")
