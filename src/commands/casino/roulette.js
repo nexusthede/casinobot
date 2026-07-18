@@ -60,7 +60,6 @@ module.exports = {
 
 **Syntax**
 \`${config.prefix}roulette <bet> <amount>\`
-
 **Examples**
 \`${config.prefix}roulette red 500\`
 \`${config.prefix}roulette black 500\`
