@@ -190,6 +190,7 @@ const economySchema = new Schema({
                     "pay",
                     "daily",
                     "work",
+                    "rob",
                     "purchase"
                 ]
             },
